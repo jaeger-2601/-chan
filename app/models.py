@@ -1,4 +1,5 @@
 import psycopg2.pool
+from collections import namedtuple
 
 class Database:
 
@@ -58,7 +59,8 @@ class Model:
 
     def __init_subclass__(cls, **kwargs):
         pass
-    
+
+
     @classmethod
     def _set_db(cls, db):
         cls.db = db
@@ -78,12 +80,12 @@ class Model:
         
         cls.db.query(
             query_string, 
-            vars_= (*attributes.values(),), 
+            vars_= (*attributes.values(), ), 
             commit=True
         )
         
     @classmethod
-    def update(cls, condition, **attributes):
+    def update(cls, condition, condition_vars, **attributes):
 
         query_string = f'''
         UPDATE {cls.__name__.upper()}
@@ -92,20 +94,46 @@ class Model:
 
         cls.db.query(
             query_string, 
-            vars_= (*attributes.values(),), 
+            vars_= (*attributes.values(), *condition_vars), 
             commit=True
         )
-        
+
+    @classmethod
+    def filter_by(cls, condition, condition_vars):
+        query_string = f'''
+        SELECT * FROM {cls.__name__.upper()}
+        WHERE {condition};
+        '''
+
+        return cls.db.query(
+            query_string, 
+            vars_= condition_vars, 
+            fetch=True
+        )
+    @classmethod   
+    def get(cls, condition, condition_vars, attributes):
+
+        query_string = f'''
+        SELECT {','.join(attributes)} FROM {cls.__name__.upper()}
+        WHERE {condition};
+        '''
+
+        return cls.db.query(
+            query_string, 
+            vars_= condition_vars, 
+            fetch=True
+        )
+
 
 class Users(Model):
     
     schema = '''
-
-        /* DROP TYPE IF EXISTS USER_TYPE CASCADE;
+        /*
+        DROP TYPE IF EXISTS USER_TYPE CASCADE;
         CREATE TYPE USER_TYPE AS ENUM (
             'MODERATOR', 'USER'
-        ); */
-
+        ); 
+        */
         CREATE TABLE IF NOT EXISTS USERS (
             UID SERIAL PRIMARY KEY,
             UNAME VARCHAR(60) UNIQUE NOT NULL,
@@ -117,6 +145,8 @@ class Users(Model):
             UTYPE USER_TYPE DEFAULT 'USER'
         );
     '''
+
+    User = namedtuple('User', ('uid', 'user_name', 'email', 'pwdhash', 'doj', 'dob', 'pic', 'user_type'))
 
     @classmethod
     def is_unique(cls, attribute, value) -> bool:
@@ -162,7 +192,23 @@ class Users(Model):
             )
         ) == 1
         
+    @classmethod
+    def get_user_info(cls, **attributes):
+        results = cls.db.query(
+                f'''
+                SELECT * FROM {cls.__name__.upper()}
+                WHERE {' AND '.join([attr.upper() + ' = %s' for attr in attributes.keys()])}
+                ''',
+            vars_=(*attributes.values(), ),
+            fetch=True,
+            )
+        parsed_output = []
 
+        for row in results:
+            parsed_output.append(cls.User(*row))
+
+        return parsed_output
+        
 class Boards(Model):     
     
     schema = '''

@@ -97,6 +97,32 @@ class LoginForm(FlaskForm):
         ]
     )
 
+class ForgotPasswordForm(FlaskForm):
+    email = EmailField(
+        validators=[
+            Email(message='Not an email!'),
+            InputRequired(message='Email required!'),
+            Length(min=5, max=100, message='Email too big!'),
+        ]
+    )
+
+class ResetPasswordForm(FlaskForm):
+
+    password = PasswordField(
+        validators=[
+            InputRequired(message='Password required!'),
+            Length(min=6, max=100, message='Password should be 6 and 100 chars!'),
+            EqualTo('password_repeat', message='Passwords should match!')
+        ]
+    )
+
+    password_repeat = PasswordField(
+        validators=[
+            InputRequired(message='Password should be rentered!'),
+        ]
+    )
+
+
 '''
      if form.profile_pic.data != None:
             ext =  form.profile_pic.data.filename.rsplit('.', 1)[1].lower()

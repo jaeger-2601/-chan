@@ -11,6 +11,7 @@ def create_app():
     
     models.init_app(app)
     utils.init_app(app)
+    auth.init_app(app)
     
     app.register_blueprint(auth.auth_bp)
 
