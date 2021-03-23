@@ -1,42 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in</title>
-</head>
+<style>
+  body {font-family: Arial, Helvetica, sans-serif;}
+  * {box-sizing: border-box;}
+  
+  /* Full-width input fields */
+  input[type=email], input[type=password] {
+    width: 100%;
+    padding: 15px;
+    margin: 5px 0 22px 0;
+    display: inline-block;
+    border: none;
+    background: #f1f1f1;
+  }
+  
+  /* Add a background color when the inputs get focus */
+  input[type=email]:focus, input[type=password]:focus {
+    background-color: #ddd;
+    outline: none;
+  }
+  
 
+  /* Add padding to container elements */
+  .container {
+    padding: 16px;
+  }
+  
+  /* The Modal (background) */
+  .modal {
+    display: block; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: #474e5d;
+    padding-top: 50px;
+  }
+  
+  /* Modal Content/Box */
+  .modal-content {
+    padding: 5%;
+    background-color: #fefefe;
+    margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+  }
+  
+
+  
+  /* Change styles for cancel button and signup button on extra small screens */
+  @media screen and (max-width: 300px) {
+    .cancelbtn, .signupbtn {
+       width: 100%;
+    }
+  }
+  </style>
 <body>
-    <h1>Welcome Back!</h1>
-          
-          <form action="/signin" method="POST">
-          
-            {{form.csrf_token}}
+  
+          <div class="modal">
 
-            <label for="email">
-              <b>Email Address</b>
-            </label>
-            <input type="email" name="email" required /> 
-            {% for error in form.email.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
+{% block content %}
+<div class="container">
+  <div class="modal-content">
+          <h1>Welcome Back!</h1>
+          <h1>Login</h1>
+          <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+            <p>
+              {{ form.email.label }}<br>
+              {{ form.email(size=100)}}
+            </p>
+            <p>
+              {{ form.password.label }}<br>
+              {{ form.password(size=100)}}
+            </p>
+          
+            <p>
+            {{ form.submit() }}
+            </p>
 
-          <br>
-
-            <label>
-              <b>Password</b> 
-            </label>
-            <input type="password" name="password" required />
-            {% for error in form.password.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-            {% endfor %}
-          
-          <p class="forgot"><a href="/forgot_password">Forgot Password?</a></p>
-          
-          <button class="button" type="submit"/>Log In</button>
-          
           </form>
+        </div>
+</div></div>
+{% endblock %}
 </body>
 
 

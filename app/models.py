@@ -128,12 +128,12 @@ class Model:
 class Users(Model):
     
     schema = '''
-        /*
+
         DROP TYPE IF EXISTS USER_TYPE CASCADE;
         CREATE TYPE USER_TYPE AS ENUM (
             'MODERATOR', 'USER'
         ); 
-        */
+
         CREATE TABLE IF NOT EXISTS USERS (
             UID SERIAL PRIMARY KEY,
             UNAME VARCHAR(60) UNIQUE NOT NULL,

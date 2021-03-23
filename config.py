@@ -19,7 +19,7 @@ SECURITY_SALT = 'gHoY7DdRQ3sFl2u0Amu87TEMDo67NSgErMJ2qxyi6AQDF0zwQLi8kJuwHsbgxjC
 #config for models.py
 DB_NAME = 'programming_forum'
 DB_USER = 'postgres'
-DB_PASSWORD = ''
+DB_PASSWORD = 'no password'
 DB_HOST = '127.0.0.1'
 DB_PORT = '5432'
 

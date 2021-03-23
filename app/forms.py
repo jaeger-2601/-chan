@@ -3,7 +3,7 @@ from .models import Users
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
-from wtforms.fields import StringField, PasswordField
+from wtforms.fields import StringField, PasswordField, SubmitField
 from wtforms.fields.html5 import EmailField, DateField
 from wtforms.validators import Email, InputRequired, Length, EqualTo, ValidationError
 
@@ -96,6 +96,7 @@ class LoginForm(FlaskForm):
             Length(min=6, max=100, message='Password should be 6 and 100 chars!'),
         ]
     )
+    submit = SubmitField('Log in')
 
 class ForgotPasswordForm(FlaskForm):
     email = EmailField(
