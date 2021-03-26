@@ -15,6 +15,9 @@ server_session = Session()
 def init_app(app):
     server_session.init_app(app)
 
+@auth_bp.route('/msg_handler')
+def msg_handler():
+    return render_template('msg_handler.html')
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -116,7 +119,7 @@ def verify_email(confirmation_token):
 
 @auth_bp.route('/signin', methods=['GET', 'POST'])
 def login():
-
+    error = None
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -127,18 +130,21 @@ def login():
             
             if bcrypt.check_password_hash(user.pwdhash, form.password.data):
                 session['user'] = user._asdict()
-                return f''' {session['user']} '''
+                flash('You were successfully logged in')
+                #return f''' {session['user']} '''
+                return redirect('msg_handler')
             else:
                 #template
-                return 'Wrong email/password!'
-
+                flash('Wrong email/password!', 'error')
+                return redirect('msg_handler')
         elif Users.is_registered(EMAIL = form.email.data):
             session['email'] = form.email.data
             return redirect(url_for('auth.unconfirmed'))
         else:
             #template
-            return 'User not found!'
-            
+            flash('User not found!', 'error')
+            return redirect('msg_handler')
+
     #template
     return render_template('login.html', form=form)
 
@@ -155,6 +161,7 @@ def forgot_password():
     
     form = ForgotPasswordForm()
 
+    confirm_url = None
     if form.validate_on_submit():
 
         token = security_serializer.generate_confirmation_token(form.email.data)
@@ -166,8 +173,8 @@ def forgot_password():
             subject='Mu-chan reset password',
             template=f'Please click this link to reset your password.\n {confirm_url}'
         )
-
-        return redirect(url_for('auth.login'))
+        flash('Please use the reset password link sent to your email..')
+        return redirect('msg_handler')
     return render_template('forgot_password.html', form=form, post_url=confirm_url)
 
         
@@ -178,9 +185,8 @@ def reset_password(confirmation_token):
     email = security_serializer.confirm(confirmation_token, max_age=60 * 60)
 
     if email == False:
-        flash('Cannot reset password. link is invalid or has expired')
-        #template
-        return 'Cannot reset password. link is invalid or has expired'
+        flash('Cannot reset password. link is invalid or has expired', 'error')
+        return redirect('/msg_handler')
 
     if form.validate_on_submit():
 
@@ -192,5 +198,7 @@ def reset_password(confirmation_token):
         )
 
         #template
-        return 'Password reset!'
+        flash('Password reset was successfull..')
+        return redirect('/msg_handler')
+#        return 'Password reset was successfull'
     return render_template('reset_password.html', form=form, post_url=url_for('auth.reset_password', confirmation_token=confirmation_token))
