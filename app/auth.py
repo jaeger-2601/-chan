@@ -1,46 +1,45 @@
-
-
-from flask import Blueprint, redirect, render_template, request, flash, current_app, url_for, session
+from flask import Blueprint, redirect, render_template, flash, current_app, url_for, session
 from flask_session import Session
-from .models import Users, Boards, Threads, Posts
+from .models import Users
 from .forms import SignupForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
-from .utils import mail, bcrypt, security_serializer ,send_email
-from uuid import uuid4
+from .utils import bcrypt, security_serializer, send_email
 from datetime import date
-from os.path import join, abspath
 
 auth_bp = Blueprint('auth', __name__)
 server_session = Session()
 
+
 def init_app(app):
     server_session.init_app(app)
-
-@auth_bp.route('/msg_handler')
-def msg_handler():
-    return render_template('msg_handler.html')
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
 
     form = SignupForm()
-    
-    #if user is logged in
+ 
+    # if user is logged in
     if 'user' in session:
         #TODO : change this
-        return redirect(url_for('auth.signup'))
+        return redirect(url_for('auth.login'))
 
     if form.validate_on_submit():
 
         Users.add(
-            UNAME = form.user_name.data,
-            EMAIL = form.email.data,
-            PWDHASH = bcrypt.generate_password_hash(form.password.data).decode('utf-8'),
-            DOB = form.birth_date.data,
+            UNAME=form.user_name.data,
+            EMAIL=form.email.data,
+            PWDHASH=bcrypt.generate_password_hash(form.password.data)
+                          .decode('utf-8'),
+            DOB=form.birth_date.data,
 
         )
         
         token = security_serializer.generate_confirmation_token(form.email.data)
-        confirm_url = url_for('auth.verify_email', confirmation_token = token, _external=True)
+
+        confirm_url = url_for(
+            'auth.verify_email', 
+            confirmation_token=token, 
+            _external=True
+        )
 
         send_email(
             sender=current_app.config['MAIL_DEFAULT_SENDER'],
@@ -54,21 +53,60 @@ def signup():
     #template
     return render_template('signup.html', form=form)
 
+@auth_bp.route('/signin', methods=['GET', 'POST'])
+def login():
+
+    form = LoginForm()
+
+    if form.validate_on_submit():
+
+        if Users.is_confirmed(EMAIL = form.email.data):
+            
+            user = Users.get_user_info(EMAIL = form.email.data)[0]
+            
+            if bcrypt.check_password_hash(user.pwdhash, form.password.data):
+                session['user'] = user._asdict()
+                flash('You were successfully logged in')
+                return redirect('/')
+            else:
+                flash('Wrong email/password!', 'error')
+
+        elif Users.is_registered(EMAIL = form.email.data):
+            session['email'] = form.email.data
+            return redirect(url_for('auth.unconfirmed'))
+        else:
+            flash('User not found!', 'error')
+
+    #template
+    return render_template('login.html', form=form)
+
+@auth_bp.route('/signout')
+def signout():
+    
+    if 'user' in session:
+        flash('logged out successfully')
+    session.pop('user', None)
+    return redirect('/')
+
 @auth_bp.route('/resend/<resend_token>')
 def resend(resend_token):
 
     email = security_serializer.confirm(resend_token, max_age=None)
 
     if email == False:
-        flash('Cannot resend email, resend token is unverified!')
         #template
-        return 'Cannot resend email, resend token is unverified!'
+        return 'Cannot resend email, resend token has expired!'
 
     if Users.is_registered(EMAIL = email):
         if not Users.is_confirmed(EMAIL = email):
             #resend the confirmation token
             token = security_serializer.generate_confirmation_token(email)
-            confirm_url = url_for('auth.verify_email', confirmation_token = token, _external=True)
+
+            confirm_url = url_for(
+                'auth.verify_email', 
+                confirmation_token=token, 
+                _external=True
+            )
 
             send_email(
                 sender=current_app.config['MAIL_DEFAULT_SENDER'],
@@ -76,6 +114,7 @@ def resend(resend_token):
                 subject='Mu-chan confirmation email',
                 template=f'Please click this link to confirm your account.\n {confirm_url}'
             )
+
             session['email'] = email
             return redirect(url_for('auth.unconfirmed'))
         else:
@@ -91,9 +130,11 @@ def unconfirmed():
         token = security_serializer.generate_confirmation_token(session.pop('email'))
         #template
         return f'''
-        Please verify your email to register your account. <a href="{url_for('auth.resend', resend_token = token)}"> resend email </a>
+        Please verify your email to register your account. 
+        <a href="{url_for('auth.resend', resend_token=token)}"> resend email </a>
         '''
     else:
+        flash('')
         return redirect('/')
 
 @auth_bp.route('/confirm/<confirmation_token>')
@@ -117,44 +158,7 @@ def verify_email(confirmation_token):
     #template
     return 'Email verified'
 
-@auth_bp.route('/signin', methods=['GET', 'POST'])
-def login():
-    error = None
-    form = LoginForm()
 
-    if form.validate_on_submit():
-
-        if Users.is_confirmed(EMAIL = form.email.data):
-            
-            user = Users.get_user_info(EMAIL = form.email.data)[0]
-            
-            if bcrypt.check_password_hash(user.pwdhash, form.password.data):
-                session['user'] = user._asdict()
-                flash('You were successfully logged in')
-                #return f''' {session['user']} '''
-                return redirect('msg_handler')
-            else:
-                #template
-                flash('Wrong email/password!', 'error')
-                return redirect('msg_handler')
-        elif Users.is_registered(EMAIL = form.email.data):
-            session['email'] = form.email.data
-            return redirect(url_for('auth.unconfirmed'))
-        else:
-            #template
-            flash('User not found!', 'error')
-            return redirect('msg_handler')
-
-    #template
-    return render_template('login.html', form=form)
-
-@auth_bp.route('/signout')
-def signout():
-    
-    if 'user' in session:
-        flash('logged out successfully')
-    session.pop('user', None)
-    return redirect('/')
 
 @auth_bp.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -173,8 +177,7 @@ def forgot_password():
             subject='Mu-chan reset password',
             template=f'Please click this link to reset your password.\n {confirm_url}'
         )
-        flash('Please use the reset password link sent to your email..')
-        return redirect('msg_handler')
+        flash('Please use the reset password link sent to your email.')
     return render_template('forgot_password.html', form=form, post_url=confirm_url)
 
         
@@ -186,19 +189,26 @@ def reset_password(confirmation_token):
 
     if email == False:
         flash('Cannot reset password. link is invalid or has expired', 'error')
-        return redirect('/msg_handler')
+        return redirect('/')
 
     if form.validate_on_submit():
 
-        #! MAKE THIS MORE SECURE! SQL INJECTION POSSIBLE
         Users.update(
-            PWDHASH=bcrypt.generate_password_hash(form.password.data).decode('utf-8'),
+            PWDHASH=bcrypt.generate_password_hash(form.password.data)
+                          .decode('utf-8'),
             condition=f"EMAIL = %s",
             condition_vars=(email,)
         )
 
         #template
         flash('Password reset was successfull..')
-        return redirect('/msg_handler')
+        return redirect('/')
 #        return 'Password reset was successfull'
-    return render_template('reset_password.html', form=form, post_url=url_for('auth.reset_password', confirmation_token=confirmation_token))
+    return render_template(
+        'reset_password.html', 
+        form=form, 
+        post_url=url_for(
+            'auth.reset_password', 
+            confirmation_token=confirmation_token
+        )
+    )

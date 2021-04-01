@@ -45,7 +45,6 @@ security_serializer = SecuritySerializer()
 
 def init_app(app):
 
-
     mail.init_app(app)
     bcrypt.init_app(app)
     security_serializer.init(

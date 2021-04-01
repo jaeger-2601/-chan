@@ -1,0 +1,29 @@
+{% extends "msg_handler.html" %}
+
+
+
+{% block body %}
+
+<div class="modal">
+<div class="container">
+  <div class="modal-content">
+          <h1>Make a post</h1>
+          <form action="" method="post" enctype="multipart/form-data" novalidate>
+            {{ form.hidden_tag() }}
+            <p>
+              {{ form.pic.label }}<br>
+              {{ form.pic()}}
+            </p>
+            <p>
+              {{ form.text.label }}<br>
+              {{ form.text(size=100)}}
+            </p>
+          
+            <p>
+            {{ form.submit() }}
+            </p>
+
+          </form>
+        </div>
+</div></div>
+{% endblock %}

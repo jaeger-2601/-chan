@@ -3,7 +3,7 @@ from .models import Users
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
-from wtforms.fields import StringField, PasswordField, SubmitField
+from wtforms.fields import StringField, PasswordField, SubmitField, TextAreaField
 from wtforms.fields.html5 import EmailField, DateField
 from wtforms.validators import Email, InputRequired, Length, EqualTo, ValidationError
 
@@ -123,23 +123,43 @@ class ResetPasswordForm(FlaskForm):
         ]
     )
 
+class ThreadForm(FlaskForm):
 
-'''
-     if form.profile_pic.data != None:
-            ext =  form.profile_pic.data.filename.rsplit('.', 1)[1].lower()
-            filename = join(
-                'app',
-                current_app.config['IMG_UPLOADS_DIR'], 
-                'profile', 
-                f'{str(uuid4())}.{ext}'
-            )
+    title = StringField(
+        validators=[
+            InputRequired(message='Title required!'),
+            Length(min=1, max=200)
+        ]
+    )
 
-            #save the image 
-            form.profile_pic.data.save(filename)
+    description = TextAreaField(
+        validators=[
+            Length(min=1, max=40000)
+        ]
+    )
 
-    profile_pic = FileField (
+    pic = FileField (
         validators=[
             FileAllowed(['png', 'jpg', 'jpeg', 'gif'], message='Images only!'),        
         ]
     )
-'''
+
+    submit = SubmitField('Make Thread')
+
+class PostForm(FlaskForm):
+    
+    text = TextAreaField(
+        validators=[
+            InputRequired(message='Text required!'),
+            Length(min=1, max=40000)
+        ]
+    )
+
+    pic = FileField (
+        validators=[
+            FileAllowed(['png', 'jpg', 'jpeg', 'gif'], message='Images only!'),        
+        ]
+    )
+
+    submit = SubmitField('Make Post')
+

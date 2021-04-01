@@ -52,3 +52,10 @@ SESSION_TYPE = 'filesystem'
 SESSION_PERMANENT = True
 SESSION_USE_SIGNER = True
 
+BOARDS = ['Python', 'Javascript', 'C++', 'C', #langs
+          'Flask', 'Django', 'Rails', 'Express', #frameworks
+           'Malware', '0 Days', 'Risk Management', 'Threat Intelligence', #cybersecurity
+           'Compiler Design', 'Operating Systems', 'Artificial Intelligence', 'Mathematics' #Theory
+           ]
+
+MAX_THREADS_PER_PAGE = 10

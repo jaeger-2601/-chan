@@ -128,12 +128,12 @@ class Model:
 class Users(Model):
     
     schema = '''
-
+        
         DROP TYPE IF EXISTS USER_TYPE CASCADE;
         CREATE TYPE USER_TYPE AS ENUM (
             'MODERATOR', 'USER'
         ); 
-
+        
         CREATE TABLE IF NOT EXISTS USERS (
             UID SERIAL PRIMARY KEY,
             UNAME VARCHAR(60) UNIQUE NOT NULL,
@@ -224,6 +224,8 @@ class Boards(Model):
     
 class Threads(Model):
 
+    Thread = namedtuple('Thread', ('tid', 'url', 'title', 'description', 'pic', 'upvotes', 'bid', 'uid', 'post_count'))
+
     schema = '''
         CREATE TABLE IF NOT EXISTS THREADS (
             TID SERIAL PRIMARY KEY,
@@ -235,8 +237,50 @@ class Threads(Model):
             BID INT REFERENCES BOARDS(BID),
             UID INT REFERENCES USERS(UID) ON DELETE SET NULL
         );
+
+        CREATE OR REPLACE FUNCTION get_post_count(p_tid integer) RETURNS integer AS $$
+        BEGIN
+                RETURN (SELECT COUNT(TID) FROM POSTS WHERE POSTS.TID = p_tid);
+        END;
+        $$ LANGUAGE plpgsql;
     '''   
-   
+
+    @classmethod
+    def filter_by_board_url(cls, board_url, sort_by, offset, rows_no):
+        
+        if sort_by == 'replies':
+
+            results = cls.db.query(
+                f'''SELECT THREADS.*, get_post_count(THREADS.TID) as post_count
+                    FROM BOARDS, THREADS
+                    WHERE BOARDS.BID = THREADS.BID AND BOARDS.URL = %s
+                    ORDER BY get_post_count(THREADS.TID) DESC
+                    OFFSET {offset} ROWS
+                    FETCH NEXT {rows_no} ROWS ONLY;
+                ''',
+                vars_=(board_url,),
+                fetch=True
+            )
+
+        elif sort_by == 'upvotes':
+
+            results = cls.db.query(
+                f'''SELECT THREADS.*, get_post_count(THREADS.TID) as post_count
+                    FROM BOARDS, THREADS
+                    WHERE BOARDS.BID = THREADS.BID AND BOARDS.URL = %s
+                    ORDER BY UPVOTES DESC
+                    OFFSET {offset} ROWS
+                    FETCH NEXT {rows_no} ROWS ONLY;
+                ''',
+                vars_=(board_url,),
+                fetch=True
+            )
+
+        else:
+            raise Exception('sort_by method not found')
+        
+        return [cls.Thread(*row) for row in results]
+        
 class Posts(Model):
 
     schema = '''
@@ -251,6 +295,25 @@ class Posts(Model):
         );
     '''
 
+    Post = namedtuple('Post', ('pid', 'url', 'text', 'pic', 'upvotes', 'tid', 'uid', 'user_name', 'user_pic_url'))
+
+    @classmethod
+    def filter_by_thread_url(cls, thread_url):
+        
+
+        results = cls.db.query(
+            f'''SELECT POSTS.*, USERS.UNAME, USERS.PIC
+                FROM THREADS, POSTS, USERS
+                WHERE THREADS.TID = POSTS.TID AND THREADS.URL = %s
+                      AND POSTS.UID = USERS.UID
+                ORDER BY POSTS.UPVOTES DESC;
+            ''',
+            vars_=(thread_url,),
+            fetch=True
+        )
+
+        
+        return [cls.Post(*row) for row in results]
 
 def init_app(app):
 
@@ -261,5 +324,17 @@ def init_app(app):
         for model in Model.__subclasses__():
             model.create()
 
-    
+    @app.cli.command('create_boards')
+    def create_boards():
+
+        for board in app.config['BOARDS']:
+            print(f'Creating {board} board')
+            Boards.add(
+                BNAME = board,
+                URL = board.lower().replace(' ', '_'),
+                TITLE = board,
+                DESCRIPTION = f'Discussions related to {board}',
+                PIC = f''
+            )
+
 
